@@ -5,6 +5,7 @@ import (
   "io/ioutil"
   "path/filepath"
   "os/exec"
+  "os"
   "log"
 )
 
@@ -49,26 +50,46 @@ func main() {
   }
 
 
+  /* detect if slideshow or video_looper is already running */
+  img_running := true // fbi has to always be restarted anyways
+  vid_running := false
+  if _, err := os.Stat("/etc/supervisor/conf.d/video_looper.conf"); err == nil {
+    vid_running = true
+  }
+
+  /* decide if slideshow or video_looper should run */
+  img_start := false
+  vid_start := false
+  if (len(images) > 0) {
+    img_start = true
+    log.Printf("%d images found, starting slideshow\n", len(images))
+  } else if (len(videos) > 0) {
+    vid_start = true
+    log.Printf("%d videos found, starting videolooper\n", len(videos))
+  }
+
   /* kill/ disable old instances of slideshow or video_looper */
-  log.Println("killing old fbi slideshow")
-  cmd_killfbi := exec.Command("/bin/sh", "-c", "sudo killall fbi")
-  if err := cmd_killfbi.Run(); err != nil {
-    log.Println("killing slideshow failed, perhaps not running")
+  if (img_running == true) {
+    log.Println("killing old fbi slideshow")
+    cmd_killfbi := exec.Command("/bin/sh", "-c", "sudo killall fbi")
+    if err := cmd_killfbi.Run(); err != nil {
+      log.Println("killing slideshow failed, perhaps not running")
+    }
   }
 
-  log.Println("killing video looper")
-  cmd_killvid_str := "sudo supervisorctl stop video_looper"
-  cmd_killvid_str += "&& cd /etc/supervisor/conf.d "
-  cmd_killvid_str += "&& sudo mv video_looper.conf video_looper.conf.disabled"
-  cmd_killvid := exec.Command("/bin/sh", "-c", cmd_killvid_str)
-  if err := cmd_killvid.Run(); err != nil {
-    log.Println("Error disabling video_looper, perhaps not running")
+  if (vid_running == true && vid_start == false) {
+    log.Println("killing video looper")
+    cmd_killvid_str := "sudo supervisorctl stop video_looper"
+    cmd_killvid_str += "&& cd /etc/supervisor/conf.d "
+    cmd_killvid_str += "&& sudo mv video_looper.conf video_looper.conf.disabled"
+    cmd_killvid := exec.Command("/bin/sh", "-c", cmd_killvid_str)
+    if err := cmd_killvid.Run(); err != nil {
+      log.Println("Error disabling video_looper")
+    }
   }
-
 
   /* start new slideshow or video_looper */
-  if (len(images) > 0) {
-    log.Printf("%d images found, starting slideshow\n", len(images))
+  if (img_start == true) {
 
     var images_str string
     for _, filename := range images {
@@ -84,8 +105,7 @@ func main() {
       log.Println(err)
     }
 
-  } else {
-    log.Printf("%d videos found, starting videolooper\n", len(videos))
+  } else if (vid_running == false && vid_start == true) {
 
     video_cmd := "cd /etc/supervisor/conf.d "
     video_cmd += "&& sudo mv video_looper.conf.disabled video_looper.conf "

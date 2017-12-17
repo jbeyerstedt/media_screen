@@ -1,0 +1,18 @@
+[Unit]
+Description=SDW Media Screen
+Documentation=https://github.com/jbeyerstedt/media_screen
+
+[Service]
+;User=pi
+;Group=beamer
+
+ExecStart=/home/pi/media_screen/run.sh
+
+Restart=on-failure
+StartLimitInterval=600
+;StartLimitBurst=5
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
+

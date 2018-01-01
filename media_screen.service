@@ -7,6 +7,7 @@ Documentation=https://github.com/jbeyerstedt/media_screen
 ;Group=beamer
 
 ExecStart=/home/pi/media_screen/run.sh
+ExecStop=/home/pi/media_screen/stop.sh
 
 Restart=on-failure
 StartLimitInterval=600
